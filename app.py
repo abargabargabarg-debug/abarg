@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch(thread=False) # Only use this if the standard patch fails
+
 import os
 import logging
 from functools import wraps
@@ -723,3 +726,4 @@ if __name__ == '__main__':
     print("=== ABARG NETWORK INITIALIZING ===")
     print("=== God Accounts: sigma, alpha, satpura (password: admin123) ===")
     socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+
