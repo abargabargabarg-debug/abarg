@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Control - {{ my_role|upper }}{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top:50px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:20px;">
+        <h1>COMMAND CENTER // <span style="color:#00ff88;">{{ my_role|upper }}</span></h1>
+        <a href="/login" style="color:#ff4444;">LOGOUT</a>
+    </div>
+
+    <div style="margin-top:40px;">
+        <h3>PENDING ACCESS REQUESTS</h3>
+        
+        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+            <thead style="background:#1e1e1e; color:#888;">
+                <tr>
+                    <th style="padding:15px; text-align:left;">Request ID</th>
+                    <th style="padding:15px; text-align:left;">Email Identity</th>
+                    <th style="padding:15px; text-align:center;">SIGMA</th>
+                    <th style="padding:15px; text-align:center;">ALPHA</th>
+                    <th style="padding:15px; text-align:center;">SATPURA</th>
+                    <th style="padding:15px; text-align:center;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr style="border-bottom:1px solid #222;">
+                    <td style="padding:15px;">#{{ req[0] }}</td>
+                    <td style="padding:15px;">{{ req[1] }}</td>
+                    
+                    <td style="text-align:center; color: {{ '#00ff88' if req[2] else '#444' }}">{{ '✓' if req[2] else '...' }}</td>
+                    <td style="text-align:center; color: {{ '#00ff88' if req[3] else '#444' }}">{{ '✓' if req[3] else '...' }}</td>
+                    <td style="text-align:center; color: {{ '#00ff88' if req[4] else '#444' }}">{{ '✓' if req[4] else '...' }}</td>
+
+                    <td style="text-align:center;">
+                        {% set my_status = req[2] if my_role=='sigma' else (req[3] if my_role=='alpha' else req[4]) %}
+                        
+                        {% if not my_status %}
+                            <a href="/admin/action/approve/{{ req[0] }}" style="background:#00ff88; color:black; padding:5px 15px; text-decoration:none; font-weight:bold; font-size:0.8rem;">APPROVE</a>
+                        {% else %}
+                            <a href="/admin/action/revoke/{{ req[0] }}" style="background:#333; color:#888; padding:5px 15px; text-decoration:none; font-size:0.8rem;">REVOKE</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding:30px; text-align:center; color:#666;">No pending requests. The network is quiet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

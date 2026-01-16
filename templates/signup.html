@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sign Up - Abarg</title>
+    <style>
+        /* --- CORE THEME (Glassmorphism) --- */
+        :root {
+            --bg-dark: #09090b;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+
+            /* Clean Indigo/Purple Accent */
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        /* --- GLOBAL SCROLLBAR (Right of Page) --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            margin: 0;
+
+            /* Allow Page Scrolling */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px; /* Add padding to prevent card touching edges on small screens */
+
+            /* Fixed Background so it doesn't move when scrolling */
+            background-image:
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 45%);
+            background-attachment: fixed;
+            background-size: cover;
+        }
+
+        /* --- THE GLASS CARD --- */
+        .glass-card {
+            width: 100%;
+            max-width: 420px;
+            /* Height is now automatic based on content */
+            height: auto;
+
+            padding: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h2 {
+            font-weight: 300;
+            font-size: 1.8rem;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* --- FORM ELEMENTS --- */
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 40px 14px 0; /* Right padding for eye icon */
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--text-main);
+            font-size: 1rem;
+            font-family: var(--font-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        /* Floating Labels */
+        label {
+            position: absolute;
+            top: 14px;
+            left: 0;
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+            transition: 0.3s ease;
+        }
+
+        input:focus + label,
+        input:not(:placeholder-shown) + label {
+            top: -10px;
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+        }
+
+        input:focus {
+            border-bottom-color: var(--accent-primary);
+            box-shadow: 0 4px 10px -4px var(--accent-glow);
+        }
+
+        /* --- PASSWORD TOGGLE ICON --- */
+        .toggle-btn {
+            position: absolute;
+            right: 0;
+            top: 14px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .toggle-btn:hover {
+            color: var(--text-main);
+        }
+
+        .toggle-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* --- BUTTON --- */
+        button {
+            width: 100%;
+            margin-top: 24px;
+            padding: 16px;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* --- FOOTER --- */
+        .footer-link {
+            display: block;
+            text-align: center;
+            margin-top: 32px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .footer-link:hover {
+            color: var(--text-main);
+            text-decoration: underline;
+        }
+
+        /* --- ERROR MESSAGE --- */
+        .flash-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- MOBILE TWEAKS --- */
+        @media (max-width: 480px) {
+            .glass-card {
+                padding: 30px 24px;
+                border: none;
+                background: transparent;
+                box-shadow: none;
+                backdrop-filter: none; /* Remove blur on mobile for performance */
+            }
+            body {
+                align-items: flex-start; /* Align top on mobile */
+                padding-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-card">
+
+        <div class="header">
+            <h2>Create Account</h2>
+            <p class="subtitle">Join the secure network</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-msg">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="input-group">
+                <input type="text" name="username" id="username" placeholder=" " required autocomplete="off">
+                <label for="username">Username</label>
+            </div>
+
+            <div class="input-group">
+                <input type="email" name="email" id="email" placeholder=" " required autocomplete="off">
+                <label for="email">Email Address</label>
+            </div>
+
+            <div class="input-group">
+                <input type="password" name="password" id="password" placeholder=" " required>
+                <label for="password">Password</label>
+                <div class="toggle-btn" onclick="togglePassword('password', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input type="password" name="confirm_password" id="confirm_password" placeholder=" " required>
+                <label for="confirm_password">Confirm Password</label>
+                <div class="toggle-btn" onclick="togglePassword('confirm_password', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </div>
+            </div>
+
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <a href="/login" class="footer-link">Already have an account? Login</a>
+    </div>
+
+    <script>
+        function togglePassword(inputId, iconEl) {
+            const input = document.getElementById(inputId);
+            const svg = iconEl.querySelector('svg');
+
+            if (input.type === "password") {
+                input.type = "text";
+                // Switch to Eye Off Icon
+                svg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+                iconEl.style.color = 'var(--text-main)';
+            } else {
+                input.type = "password";
+                // Switch to Eye On Icon
+                svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+                iconEl.style.color = 'var(--text-muted)';
+            }
+        }
+    </script>
+
+</body>
+</html>

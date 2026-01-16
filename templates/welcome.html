@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <style>
+        :root {
+            --bg-dark: #09090b;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+
+            /* Background Ambience */
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+            background-size: cover;
+            background-attachment: fixed;
+        }
+
+        .welcome-container {
+            text-align: center;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 60px; /* Nice spacious gap for PC */
+        }
+
+        /* TYPOGRAPHY */
+        .brand-title {
+            font-size: clamp(3.5rem, 6vw, 6rem); /* Huge on PC, scales down */
+            font-weight: 200;
+            letter-spacing: -0.04em;
+            background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 80px rgba(99, 102, 241, 0.2);
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+
+        .brand-tagline {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            letter-spacing: 0.3em;
+            font-weight: 500;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        /* BUTTONS */
+        .btn-group {
+            display: flex;
+            gap: 24px;
+            width: auto; /* Let content dictate width on PC */
+            flex-direction: row; /* Default: Side-by-side for PC */
+        }
+
+        .btn {
+            padding: 18px 48px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            min-width: 200px; /* Consistent width */
+            text-align: center;
+        }
+
+        /* Primary: Request Access */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+            color: white;
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.25);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Secondary: Login */
+        .btn-secondary {
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        /* =========================================
+           MOBILE RESPONSIVENESS
+           (Only applies when screen is smaller than 768px)
+           ========================================= */
+        @media (max-width: 768px) {
+            .welcome-container {
+                gap: 40px;
+                max-width: 100%;
+            }
+
+            .brand-title {
+                font-size: clamp(3rem, 12vw, 4rem);
+                letter-spacing: -2px;
+            }
+
+            .brand-tagline {
+                font-size: 0.75rem;
+                letter-spacing: 3px;
+                line-height: 1.5;
+                padding: 0 20px; /* Prevent text touching edges */
+            }
+
+            .btn-group {
+                flex-direction: column; /* Stack buttons vertically */
+                width: 100%;
+                max-width: 320px;
+                gap: 16px;
+            }
+
+            .btn {
+                width: 100%; /* Full width buttons */
+                padding: 22px; /* Taller touch targets */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="welcome-container">
+        <div>
+            <h1 class="brand-title">ABARG</h1>
+            <p class="brand-tagline">SECURE // DELOCALIZED // ENCRYPTED</p>
+        </div>
+
+        <div class="btn-group">
+            <a href="/login" class="btn btn-secondary">SYSTEM LOGIN</a>
+            <a href="/signup" class="btn btn-primary">REQUEST ACCESS</a>
+        </div>
+    </div>
+
+</body>
+</html>

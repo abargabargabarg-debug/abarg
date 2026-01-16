@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abarg Network // Secure Messaging</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* === CORE THEME (Glassmorphism) === */
+        :root {
+            --bg-dark: #09090b;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+
+            --accent-primary: #6366f1;
+            --accent-hover: #7c3aed;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+
+            --text-main: #ffffff;
+            --text-muted: #a1a1aa;
+            --text-secondary: #71717a;
+
+            --message-in: rgba(255, 255, 255, 0.05);
+            --message-out: rgba(99, 102, 241, 0.15);
+
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* === GLOBAL SCROLLBAR === */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 45%);
+            background-attachment: fixed;
+        }
+
+        /* === APP CONTAINER === */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* === NAVIGATION SIDEBAR === */
+        .nav-sidebar {
+            width: 70px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 8px;
+        }
+
+        .nav-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-muted);
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: var(--glass-bg);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            width: 4px;
+            height: 24px;
+            background: var(--accent-primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .nav-spacer {
+            flex: 1;
+        }
+
+        .nav-item.logout {
+            color: #ef4444;
+        }
+
+        .nav-item.logout:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+        }
+
+        /* === LEFT PANEL === */
+        .left-panel {
+            width: 380px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            height: 70px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: white;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .panel-title {
+            flex: 1;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* === SEARCH BAR === */
+        .search-container {
+            padding: 15px;
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* === CHAT LIST === */
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .list-section {
+            padding: 15px 20px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .chat-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .chat-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-left-color: var(--accent-primary);
+        }
+
+        .chat-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            border: 1px solid var(--glass-border);
+        }
+
+        .chat-avatar.group {
+            background: linear-gradient(135deg, var(--accent-primary), #7c3aed);
+            border: none;
+        }
+
+        .chat-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 3px;
+        }
+
+        .chat-preview {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .member-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        /* === MAIN CHAT AREA === */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-dark);
+            position: relative;
+        }
+
+        .chat-header {
+            height: 70px;
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+        }
+
+        .chat-header-info {
+            flex: 1;
+        }
+
+        .chat-header-name {
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .chat-header-status {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .icon-btn:hover {
+            background: var(--glass-bg);
+            color: var(--text-main);
+        }
+
+        /* === MESSAGES AREA === */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .empty-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 400px;
+        }
+
+        /* === MESSAGE BUBBLES === */
+        .message {
+            display: flex;
+            margin-bottom: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 65%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .message.received .message-bubble {
+            background: var(--message-in);
+            border: 1px solid var(--glass-border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.sent .message-bubble {
+            background: var(--message-out);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: var(--accent-primary);
+        }
+
+        .message-text {
+            font-size: 14.5px;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* === INPUT AREA === */
+        .input-container {
+            padding: 15px 20px;
+            border-top: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .message-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .send-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), #7c3aed);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* === GOD MODE PANEL === */
+        .god-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .god-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-primary);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Multi-Select Input */
+        .multi-select-container {
+            position: relative;
+        }
+
+        .selected-users {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .user-tag {
+            background: var(--accent-primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .user-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            margin-top: 5px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .user-option:last-child {
+            border-bottom: none;
+        }
+
+        .user-option:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .user-option.selected {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #7c3aed);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .pending-user {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pending-info {
+            flex: 1;
+        }
+
+        .pending-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .pending-email {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .approval-badges {
+            display: flex;
+            gap: 6px;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--glass-border);
+        }
+
+        .badge.approved {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .btn-approve {
+            background: var(--accent-primary);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .btn-approve:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Group Members List */
+        .members-list {
+            margin-top: 15px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .member-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .member-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        /* === SETTINGS PANEL === */
+        .settings-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .settings-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 14px;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-muted);
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        /* === UTILITY CLASSES === */
+        .hidden {
+            display: none !important;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .left-panel {
+                width: 100%;
+                position: absolute;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .left-panel.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- Navigation Sidebar -->
+        <nav class="nav-sidebar">
+            <div class="nav-item active" onclick="showTab('chats')" data-tab="chats">
+                <i class="fas fa-comments" style="font-size: 20px;"></i>
+            </div>
+
+            {% if is_god %}
+            <div class="nav-item" onclick="showTab('god')" data-tab="god">
+                <i class="fas fa-crown" style="font-size: 20px;"></i>
+            </div>
+            {% endif %}
+
+            <div class="nav-item" onclick="showTab('settings')" data-tab="settings">
+                <i class="fas fa-cog" style="font-size: 20px;"></i>
+            </div>
+
+            <div class="nav-spacer"></div>
+
+            <a href="/logout" style="text-decoration: none;">
+                <div class="nav-item logout">
+                    <i class="fas fa-sign-out-alt" style="font-size: 18px;"></i>
+                </div>
+            </a>
+        </nav>
+
+        <!-- Left Panel: Chats List -->
+        <aside class="left-panel" id="panel-chats">
+            <div class="panel-header">
+                <div class="user-avatar">{{ username[0] }}</div>
+                <div class="panel-title">Messages</div>
+            </div>
+
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="chat-search" placeholder="Search conversations..." onkeyup="filterChats()">
+                </div>
+            </div>
+
+            <div class="chat-list" id="chat-list">
+                <div class="list-section">Direct Messages</div>
+                {% for u in users %}
+                <div class="chat-item" data-name="{{ u.username }}" onclick="selectChat('user', {{ u.id }}, '{{ u.username }}')">
+                    <div class="chat-avatar">{{ u.username[0] }}</div>
+                    <div class="chat-info">
+                        <div class="chat-name">{{ u.username }}</div>
+                        <div class="chat-preview">Start a conversation...</div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="list-section">Groups</div>
+                {% for g in groups %}
+                <div class="chat-item" data-name="{{ g.name }}" onclick="selectChat('group', {{ g.id }}, '{{ g.name }}', {{ g.member_count }})">
+                    <div class="chat-avatar group">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-name">
+                            {{ g.name }}
+                            <span class="member-count">{{ g.member_count }} members</span>
+                        </div>
+                        <div class="chat-preview">Group chat</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <!-- Left Panel: God Mode (Only for God Users) -->
+        {% if is_god %}
+        <aside class="left-panel hidden" id="panel-god">
+            <div class="panel-header">
+                <div class="user-avatar" style="background: linear-gradient(135deg, #ffd700, #ffed4e);">
+                    <i class="fas fa-crown" style="color: #000;"></i>
+                </div>
+                <div class="panel-title">God Mode</div>
+            </div>
+
+            <div class="god-content">
+                <!-- Portal Stats -->
+                <div class="god-section">
+                    <div class="section-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Portal Statistics
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="background: rgba(99, 102, 241, 0.1); padding: 15px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{{ total_users }}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Total Users</div>
+                        </div>
+                        <div style="background: rgba(99, 102, 241, 0.1); padding: 15px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--accent-primary);">{{ total_groups }}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Total Groups</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create Group -->
+                <div class="god-section">
+                    <div class="section-title">
+                        <i class="fas fa-plus-circle"></i>
+                        Create Group
+                    </div>
+                    <form id="create-group-form" onsubmit="createGroup(event)">
+                        <div class="form-group">
+                            <label class="form-label">Group Name</label>
+                            <input type="text" id="group-name" class="form-input" placeholder="Enter group name..." required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Add Members (Click to select multiple)</label>
+                            <div class="multi-select-container">
+                                <div class="selected-users" id="selected-users-create"></div>
+                                <input type="text" class="form-input" id="member-search-create" placeholder="Search users..." autocomplete="off" onfocus="showDropdown('create')" onkeyup="filterUsers('create')">
+                                <div class="user-dropdown" id="user-dropdown-create">
+                                    {% for u in users %}
+                                    <div class="user-option" data-user-id="{{ u.id }}" data-username="{{ u.username }}" onclick="toggleUser('create', {{ u.id }}, '{{ u.username }}')">
+                                        {{ u.username }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="member-ids-create" name="member_ids">
+                        <button type="submit" class="btn btn-primary">Create Group</button>
+                    </form>
+                </div>
+
+                <!-- Add Member to Existing Group -->
+                <div class="god-section">
+                    <div class="section-title">
+                        <i class="fas fa-user-plus"></i>
+                        Add Members to Group
+                    </div>
+                    <form id="add-member-form" onsubmit="addMembers(event)">
+                        <div class="form-group">
+                            <label class="form-label">Select Group</label>
+                            <select id="group-select" class="form-input" required>
+                                <option value="">Choose a group...</option>
+                                {% for g in groups %}
+                                <option value="{{ g.id }}">{{ g.name }} ({{ g.member_count }} members)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Add Members</label>
+                            <div class="multi-select-container">
+                                <div class="selected-users" id="selected-users-add"></div>
+                                <input type="text" class="form-input" id="member-search-add" placeholder="Search users..." autocomplete="off" onfocus="showDropdown('add')" onkeyup="filterUsers('add')">
+                                <div class="user-dropdown" id="user-dropdown-add">
+                                    {% for u in users %}
+                                    {% if u.id != current_user.id %}
+                                        <div class="user-option" data-user-id="{{ u.id }}" data-username="{{ u.username }}"
+                                            onclick="toggleUser('create', {{ u.id }}, '{{ u.username }}')">
+                                    {{ u.username }}
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="member-ids-add" name="member_ids">
+                        <button type="submit" class="btn btn-primary">Add Members</button>
+                    </form>
+                </div>
+
+                <!-- View Group Members -->
+                <div class="god-section">
+                    <div class="section-title">
+                        <i class="fas fa-users"></i>
+                        View Group Members
+                    </div>
+                    <div class="form-group">
+                        <select class="form-input" onchange="viewGroupMembers(this.value)">
+                            <option value="">Select a group to view members...</option>
+                            {% for g in groups %}
+                            <option value="{{ g.id }}">{{ g.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="group-members-display"></div>
+                </div>
+
+                <!-- Pending Approvals -->
+                <div class="god-section">
+                    <div class="section-title">
+                        <i class="fas fa-user-clock"></i>
+                        Pending Approvals ({{ pending_users|length }})
+                    </div>
+
+                    {% for p in pending_users %}
+                    <div class="pending-user">
+                        <div class="pending-info">
+                            <div class="pending-name">{{ p.username }}</div>
+                            <div class="pending-email">{{ p.email }}</div>
+                            <div class="approval-badges">
+                                <span class="badge {{ 'approved' if p.sigma_approved else '' }}">SIGMA</span>
+                                <span class="badge {{ 'approved' if p.alpha_approved else '' }}">ALPHA</span>
+                                <span class="badge {{ 'approved' if p.satpura_approved else '' }}">SATPURA</span>
+                            </div>
+                        </div>
+
+                        {% if (god_role == 'SIGMA' and not p.sigma_approved) or
+                              (god_role == 'ALPHA' and not p.alpha_approved) or
+                              (god_role == 'SATPURA' and not p.satpura_approved) %}
+                            <a href="/approve/{{ p.id }}" class="btn-approve">Approve</a>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 13px;">✓ Done</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+        {% endif %}
+
+        <!-- Left Panel: Settings -->
+        <aside class="left-panel hidden" id="panel-settings">
+            <div class="panel-header">
+                <div class="user-avatar">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="panel-title">Settings</div>
+            </div>
+
+            <div class="settings-content">
+                <div class="settings-section">
+                    <div class="section-title">
+                        <i class="fas fa-user"></i>
+                        Account
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Username</div>
+                            <div class="setting-description">{{ username }}</div>
+                        </div>
+                    </div>
+                    <div class="setting-item" onclick="openPasswordModal()">
+                        <div>
+                            <div class="setting-label">Change Password</div>
+                            <div class="setting-description">Update your password</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">
+                        <i class="fas fa-bell"></i>
+                        Notifications
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Message Notifications</div>
+                            <div class="setting-description">Get notified for new messages</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="msg-notifications" checked onchange="saveSetting('msg_notifications', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Sound Effects</div>
+                            <div class="setting-description">Play sounds for messages</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="sound-effects" checked onchange="saveSetting('sound_effects', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">
+                        <i class="fas fa-palette"></i>
+                        Appearance
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Theme</div>
+                            <div class="setting-description">Dark mode (default)</div>
+                        </div>
+                        <i class="fas fa-moon" style="color: var(--accent-primary);"></i>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">
+                        <i class="fas fa-shield-alt"></i>
+                        Privacy & Security
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Two-Factor Authentication</div>
+                            <div class="setting-description">Add extra security to your account</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="two-factor" onchange="saveSetting('two_factor', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Read Receipts</div>
+                            <div class="setting-description">Show when you've read messages</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="read-receipts" checked onchange="saveSetting('read_receipts', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        About
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Version</div>
+                            <div class="setting-description">1.0.0</div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Terms of Service</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Privacy Policy</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--text-muted);"></i>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <div class="chat-header hidden" id="chat-header">
+                <div class="chat-avatar" id="header-avatar"></div>
+                <div class="chat-header-info">
+                    <div class="chat-header-name" id="header-name">Select a chat</div>
+                    <div class="chat-header-status" id="header-status">Online</div>
+                </div>
+                <div class="icon-btn" onclick="showGroupInfo()">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="icon-btn">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messages-container">
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <h2>Welcome to Abarg Network</h2>
+                    <p>Your secure, encrypted messaging platform. Select a chat to start a conversation.</p>
+                </div>
+            </div>
+
+            <div class="input-container hidden" id="input-container">
+                <div class="icon-btn">
+                    <i class="fas fa-smile"></i>
+                </div>
+                <input type="text" class="message-input" id="message-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button class="send-btn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Change Password</div>
+                <div class="close-modal" onclick="closePasswordModal()">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <form id="password-form" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" id="current-password" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="new-password" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password</label>
+                    <input type="password" id="confirm-password" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Group Info Modal -->
+    <div id="group-info-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Group Information</div>
+                <div class="close-modal" onclick="closeGroupInfoModal()">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div id="group-info-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentChat = null;
+        let selectedUsersCreate = [];
+        let selectedUsersAdd = [];
+
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const activeNav = document.querySelector(`[data-tab="${tabName}"]`);
+            if (activeNav) activeNav.classList.add('active');
+
+            document.querySelectorAll('.left-panel').forEach(panel => {
+                panel.classList.add('hidden');
+            });
+
+            const panel = document.getElementById(`panel-${tabName}`);
+            if (panel) {
+                panel.classList.remove('hidden');
+            }
+        }
+
+        // Filter chats
+        function filterChats() {
+            const searchTerm = document.getElementById('chat-search').value.toLowerCase();
+            const chatItems = document.querySelectorAll('.chat-item');
+
+            chatItems.forEach(item => {
+                const name = item.getAttribute('data-name').toLowerCase();
+                if (name.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+
+        // Send message
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const msg = input.value.trim();
+
+            if (!msg || !currentChat) return;
+
+            const payload = { msg };
+            if (currentChat.type === 'group') {
+                payload.group_id = currentChat.id;
+            } else {
+                payload.recipient_id = currentChat.id;
+            }
+
+            socket.emit('send_message', payload);
+            input.value = '';
+
+            // Play sound if enabled
+            const soundEnabled = document.getElementById('sound-effects').checked;
+            if (soundEnabled) {
+                playSound();
+            }
+        }
+
+        // Receive message
+        socket.on('receive_message', (data) => {
+            const container = document.getElementById('messages-container');
+            const isMe = data.sender === "{{ username }}";
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isMe ? 'sent' : 'received'}`;
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    ${!isMe ? `<div class="message-sender">${data.sender}</div>` : ''}
+                    <div class="message-text">${data.msg}</div>
+                    <div class="message-time">${data.timestamp}</div>
+                </div>
+            `;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+
+            // Show notification if not current chat
+            const notificationsEnabled = document.getElementById('msg-notifications').checked;
+            if (notificationsEnabled && !isMe) {
+                showNotification(data.sender, data.msg);
+            }
+        });
+
+        // Multi-select user functions
+        function showDropdown(context) {
+            document.getElementById(`user-dropdown-${context}`).classList.add('show');
+        }
+
+        function filterUsers(context) {
+            const searchTerm = document.getElementById(`member-search-${context}`).value.toLowerCase();
+            const options = document.querySelectorAll(`#user-dropdown-${context} .user-option`);
+
+            options.forEach(option => {
+                const username = option.getAttribute('data-username').toLowerCase();
+                if (username.includes(searchTerm)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleUser(context, userId, username) {
+            const selectedUsers = context === 'create' ? selectedUsersCreate : selectedUsersAdd;
+            const index = selectedUsers.findIndex(u => u.id === userId);
+
+            if (index > -1) {
+                selectedUsers.splice(index, 1);
+            } else {
+                selectedUsers.push({ id: userId, username: username });
+            }
+
+            updateSelectedUsers(context);
+        }
+
+        function updateSelectedUsers(context) {
+            const selectedUsers = context === 'create' ? selectedUsersCreate : selectedUsersAdd;
+            const container = document.getElementById(`selected-users-${context}`);
+            const hiddenInput = document.getElementById(`member-ids-${context}`);
+
+            container.innerHTML = '';
+            selectedUsers.forEach(user => {
+                const tag = document.createElement('div');
+                tag.className = 'user-tag';
+                tag.innerHTML = `
+                    ${user.username}
+                    <span class="remove" onclick="removeUser('${context}', ${user.id})">&times;</span>
+                `;
+                container.appendChild(tag);
+            });
+
+            hiddenInput.value = selectedUsers.map(u => u.id).join(',');
+
+            // Update dropdown options
+            document.querySelectorAll(`#user-dropdown-${context} .user-option`).forEach(option => {
+                const userId = parseInt(option.getAttribute('data-user-id'));
+                if (selectedUsers.some(u => u.id === userId)) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        function removeUser(context, userId) {
+            const selectedUsers = context === 'create' ? selectedUsersCreate : selectedUsersAdd;
+            const index = selectedUsers.findIndex(u => u.id === userId);
+            if (index > -1) {
+                selectedUsers.splice(index, 1);
+                updateSelectedUsers(context);
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.multi-select-container')) {
+                document.querySelectorAll('.user-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
+        });
+
+        // Create group
+        function createGroup(event) {
+            event.preventDefault();
+            const groupName = document.getElementById('group-name').value;
+            const memberIds = document.getElementById('member-ids-create').value;
+
+            fetch('/create_group', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `group_name=${encodeURIComponent(groupName)}&member_ids=${memberIds}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Group created successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        // Add members
+        function addMembers(event) {
+            event.preventDefault();
+            const groupId = document.getElementById('group-select').value;
+            const memberIds = document.getElementById('member-ids-add').value;
+
+            fetch('/add_members', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `group_id=${groupId}&member_ids=${memberIds}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Members added successfully!');
+                    selectedUsersAdd = [];
+                    updateSelectedUsers('add');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        // View group members
+        function viewGroupMembers(groupId) {
+            if (!groupId) {
+                document.getElementById('group-members-display').innerHTML = '';
+                return;
+            }
+
+            fetch(`/get_group_members/${groupId}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('group-members-display');
+                if (data.members && data.members.length > 0) {
+                    container.innerHTML = `
+                        <div class="members-list">
+                            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+                                ${data.members.length} member${data.members.length > 1 ? 's' : ''}
+                            </div>
+                            ${data.members.map(member => `
+                                <div class="member-item">
+                                    <div class="member-avatar">${member.username[0]}</div>
+                                    <div class="member-name">${member.username}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-muted); font-size: 14px;">No members found.</p>';
+                }
+            });
+        }
+
+        // Show group info modal
+        function showGroupInfo() {
+            if (!currentChat || currentChat.type !== 'group') return;
+
+            fetch(`/get_group_members/${currentChat.id}`)
+            .then(response => response.json())
+            .then(data => {
+                const content = document.getElementById('group-info-content');
+                content.innerHTML = `
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 5px;">${currentChat.name}</div>
+                        <div style="font-size: 13px; color: var(--text-muted);">${data.members.length} member${data.members.length > 1 ? 's' : ''}</div>
+                    </div>
+                    <div class="members-list">
+                        ${data.members.map(member => `
+                            <div class="member-item">
+                                <div class="member-avatar">${member.username[0]}</div>
+                                <div class="member-name">${member.username}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById('group-info-modal').classList.add('show');
+            });
+        }
+
+        function closeGroupInfoModal() {
+            document.getElementById('group-info-modal').classList.remove('show');
+        }
+
+        // Settings functions
+        function saveSetting(key, value) {
+            fetch('/update_setting', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ key: key, value: value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Setting saved:', key, value);
+            });
+        }
+
+        function openPasswordModal() {
+            document.getElementById('password-modal').classList.add('show');
+        }
+
+        function closePasswordModal() {
+            document.getElementById('password-modal').classList.remove('show');
+        }
+
+        function changePassword(event) {
+            event.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            if (newPassword !== confirmPassword) {
+                alert('New passwords do not match!');
+                return;
+            }
+
+            fetch('/change_password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Password changed successfully!');
+                    closePasswordModal();
+                    document.getElementById('password-form').reset();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        // Notification function
+        function showNotification(sender, message) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(sender, {
+                    body: message,
+                    icon: '/static/icon.png'
+                });
+            }
+        }
+
+        // Request notification permission
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        // Sound effect
+        function playSound() {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCx+zPDTjzgJEWKy6OqOOQcYb8j1yH0kBR9vyO/Zljgo');
+            audio.play();
+        }
+
+        // Initialize
+        showTab('chats');
+
+        // Load user settings
+        fetch('/get_settings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.msg_notifications !== undefined) {
+                document.getElementById('msg-notifications').checked = data.msg_notifications;
+            }
+            if (data.sound_effects !== undefined) {
+                document.getElementById('sound-effects').checked = data.sound_effects;
+            }
+            if (data.two_factor !== undefined) {
+                document.getElementById('two-factor').checked = data.two_factor;
+            }
+            if (data.read_receipts !== undefined) {
+                document.getElementById('read-receipts').checked = data.read_receipts;
+            }
+        });
+
+        // Select chat (update existing function)
+    function selectChat(type, id, name, memberCount = 0) {
+    currentChat = { type, id, name, memberCount };
+
+    document.getElementById('chat-header').classList.remove('hidden');
+    document.getElementById('input-container').classList.remove('hidden');
+    document.getElementById('header-name').textContent = name;
+
+    const avatar = document.getElementById('header-avatar');
+    if (type === 'group') {
+        avatar.classList.add('group');
+        avatar.innerHTML = '<i class="fas fa-users"></i>';
+        document.getElementById('header-status').textContent = `${memberCount} members`;
+    } else {
+        avatar.classList.remove('group');
+        avatar.textContent = name[0];
+        document.getElementById('header-status').textContent = 'Online';
+    }
+
+    // Clear and load messages
+    document.getElementById('messages-container').innerHTML = '';
+
+    // Load previous messages
+    fetch(`/get_messages/${type}/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            data.messages.forEach(msg => {
+                displayMessage(msg.sender, msg.content, msg.timestamp, msg.is_me);
+            });
+        });
+
+    document.querySelectorAll('.chat-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.chat-item').classList.add('active');
+
+    // Join chat room
+    socket.emit('join_chat', { type, id });
+    }
+
+    // Helper function to display message
+    function displayMessage(sender, content, timestamp, isMe) {
+    const container = document.getElementById('messages-container');
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isMe ? 'sent' : 'received'}`;
+
+    messageDiv.innerHTML = `
+        <div class="message-bubble">
+            ${!isMe ? `<div class="message-sender">${sender}</div>` : ''}
+            <div class="message-text">${content}</div>
+            <div class="message-time">${timestamp}</div>
+        </div>
+    `;
+
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+    }
+
+
+    </script>
+
+</body>
+</html>
